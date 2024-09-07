@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<h1>Register to use our Learning hub</h1>
+<form action="/register" method="post">
+    <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+    </div>
+    <div class="mb-3">
+        <label for="name" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <label class="form-label">Role</label>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="role" id="student" value="student" required>
+        <label class="form-check-label" for="student">Student</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="role" id="teacher" value="teacher" required>
+        <label class="form-check-label" for="teacher">Teacher</label>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <div class="mb-3">
+        <label for="confirm-password" class="form-label">Confirm Password</label>
+        <input type="password" class="form-control" id="confirm-password" name="confirm-password" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+    <p>Or <a href="/login" class="btn btn-link">Login Here</a> if you already have an account.</p>
+</form>
+{% endblock %}
