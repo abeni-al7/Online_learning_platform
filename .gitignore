@@ -1,0 +1,17 @@
+# Python virtual environment
+learn
+
+# Compiled Python files
+*.pyc
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Dependency directories
+lib/
+lib64/
+bin/
+include/
