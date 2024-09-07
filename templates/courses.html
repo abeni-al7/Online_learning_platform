@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Courses{% endblock %}
+{% block content %}
+<h2>Courses</h2>
+
+{% if role == 'teacher' %}
+<p>Welcome, teacher!</p>
+<a href="#"><button type="button" class="btn btn-primary">Create A New Course</button></a>
+<table>
+    <tr>
+        <th>Course Name</th>
+        <th>Actions</th>
+    </tr>
+    {% for course in courses %}
+    <tr>
+        <td><a href="#">{{ course.name }}</a></td>
+        <td>
+            <a href="#"><button type="button" class="btn btn-primary">Edit</button></a>
+            <a href="#"><button type="button" class="btn btn-danger">Delete</button></a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% elif role == 'student' %}
+<p>Welcome, student!</p>
+<a href="#"><button type="button" class="btn btn-primary">Browse Courses</button></a>
+<a href="#"><button type="button" class="btn btn-primary">Enrolled Courses</button></a>
+{% else %}
+<p>Unknown role!</p>
+{% endif %}
+
+{% endblock %}
