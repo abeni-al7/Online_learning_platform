@@ -36,5 +36,35 @@ def courses():
     role = 'student'
     return render_template('courses.html', role=role, courses=courses)
 
+@app.route('/profile')
+def profile():
+    role = 'teacher'
+    user = {
+        'username': 'johndoe',
+        'name': 'John Doe',
+        'email': 'john@doe.com',
+        'role': role,
+        'grade': '10th Grade',
+        'bio': 'I am a student at XYZ High School',
+        'certificates': [
+            {
+                'name': 'Python Programming',
+                'year': '1998',
+                'institution': 'ABC Institute',
+                'description': 'Learned Python Programming from scratch',
+            },
+            {
+                'name': 'Web Development',
+                'year': '1999',
+                'institution': 'DEF Institute',
+                'description': 'Learned Web Development from scratch',
+            },
+        ],
+        'education': 'Bachelors',
+        'experience': '5 years',
+        'specializations': ['Python Programming', 'Web Development'],
+    }
+    return render_template('profile.html', user=user, role=role)
+
 if __name__ == '__main__':
     app.run(debug=True)

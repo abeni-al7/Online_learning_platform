@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<p>Username: {{ user.username }}</p>
+<p>Email: {{ user.email }}</p>
+<p>Name: {{ user.name }}</p>
+<p>Bio: {{ user.bio }}</p>
+{% if role == 'student' %}
+<p>Grade Level: {{ user.grade }}</p>
+{% endif %}
+{% if role == 'teacher' %}
+<p>Certificates: </p>
+{% for certificate in user.certificates %}
+<div class="card" style="width: 18rem;">
+    <div class="card-body">
+        <h5 class="card-title">{{ certificate.name }}</h5>
+        <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.institution }}</h6>
+        <p class="card-text">{{ certificate.description }}</p>
+        <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.year }}</h6>
+    </div>
+</div>
+{% endfor %}
+<p>Education Level: {{ user.education }}</p>
+<p>Experience: {{ user.experience }}</p>
+<p>Specializations: </p>
+<ul>
+    {% for specialization in user.specializations %}
+    <li>{{ specialization }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}
