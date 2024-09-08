@@ -84,6 +84,20 @@ def enrolled_courses():
     role = 'student'
     return render_template('enrolled_courses.html', courses=courses, user=user)
 
+@app.route('/courses/wishlist')
+def wishlist():
+    courses = [
+        {
+            'name': 'Data Science',
+            'code': 'DS101',
+            'description': 'Learn Data Science from scratch'
+        },
+    ]
+    user = {
+        'name': 'John Doe',
+    }
+    role = 'student'
+    return render_template('wishlist.html', courses=courses, user=user)
 
 @app.route('/profile')
 def profile():

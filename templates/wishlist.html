@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Browse{% endblock %}
+{% block content %}
+<h4>Available Courses to Enroll</h4>
+<form class="d-flex" role="search">
+    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+    <button class="btn btn-outline-success" type="submit">Search</button>
+</form>
+<table>
+    <tr>
+        <th>Course Name</th>
+        <th>Actions</th>
+    </tr>
+    {% for course in courses %}
+    {% if course not in user.enrolled %}
+    <tr>
+        <td><a href="#">{{ course.name }}</a></td>
+        <td>
+            <a href="#"><button type="button" class="btn btn-primary">Enroll</button></a>
+            <a href="#"><button type="button" class="btn btn-danger">Remove from Wishlist</button></a>
+        </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+</table>
+{% endblock %}
