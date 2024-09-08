@@ -2,10 +2,17 @@
 {% block title %}Courses{% endblock %}
 {% block content %}
 <h2>Courses</h2>
-
+<p>Welcome {{ user.name }}</p>
+<a href="/courses/browse"><button type="button" class="btn btn-primary">Browse Courses</button></a>
+<a href="/courses/enrolled"><button type="button" class="btn btn-primary">Enrolled Courses</button></a>
+<a href="#"><button type="button" class="btn btn-success">Wishlist</button></a>
 {% if role == 'teacher' %}
-<p>Welcome, teacher!</p>
 <a href="#"><button type="button" class="btn btn-primary">Create A New Course</button></a>
+<h4>Your Courses</h4>
+<form class="d-flex" role="search">
+    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+    <button class="btn btn-outline-success" type="submit">Search</button>
+</form>
 <table>
     <tr>
         <th>Course Name</th>
@@ -21,12 +28,6 @@
     </tr>
     {% endfor %}
 </table>
-{% elif role == 'student' %}
-<p>Welcome, student!</p>
-<a href="#"><button type="button" class="btn btn-primary">Browse Courses</button></a>
-<a href="#"><button type="button" class="btn btn-primary">Enrolled Courses</button></a>
-{% else %}
-<p>Unknown role!</p>
 {% endif %}
 
 {% endblock %}

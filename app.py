@@ -33,8 +33,57 @@ def courses():
             'description': 'Learn Data Science from scratch'
         },
     ]
+    user = {
+        'name': 'John Doe',
+    }
+    role = 'teacher'
+    return render_template('courses.html', role=role, courses=courses, user=user)
+
+@app.route('/courses/browse')
+def browse_courses():
+    courses = [
+        {
+            'name': 'Python Programming',
+            'code': 'PY101',
+            'description': 'Learn Python Programming from scratch'
+        },
+        {
+            'name': 'Web Development',
+            'code': 'WD101',
+            'description': 'Learn Web Development from scratch'
+        },
+        {
+            'name': 'Data Science',
+            'code': 'DS101',
+            'description': 'Learn Data Science from scratch'
+        },
+    ]
+    user = {
+        'name': 'John Doe',
+    }
     role = 'student'
-    return render_template('courses.html', role=role, courses=courses)
+    return render_template('browse_courses.html', courses=courses, user=user)
+
+@app.route('/courses/enrolled')
+def enrolled_courses():
+    courses = [
+        {
+            'name': 'Python Programming',
+            'code': 'PY101',
+            'description': 'Learn Python Programming from scratch'
+        },
+        {
+            'name': 'Web Development',
+            'code': 'WD101',
+            'description': 'Learn Web Development from scratch'
+        },
+    ]
+    user = {
+        'name': 'John Doe',
+    }
+    role = 'student'
+    return render_template('enrolled_courses.html', courses=courses, user=user)
+
 
 @app.route('/profile')
 def profile():
