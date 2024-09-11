@@ -18,7 +18,18 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.Text, unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
-    username = db.Column(db.Text, nullable=True)
+    username = db.Column(db.Text, unique=True, nullable=True)
+    role = db.Column(db.Text, nullable=False)
+    name = db.Column(db.Text, nullable=True)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'username': self.username,
+            'role': self.role,
+            'name': self.name,
+        }
 
 class Student(db.Model):
     __tablename__ = 'students'
@@ -62,18 +73,17 @@ def register():
             print('Passwords don\'t match')
         else:
             try:
-                new_user = User(email=email, password=hashed_password, username=username)
-                print(new_user.get_id())
-                # if role == 'teacher':
-                #     new_teacher = Teacher(user_id=new_user.id)
-                #     db.session.add(new_teacher)
-                #     db.session.commit()
-                # elif role == 'student':
-                #     new_student = Student(user_id=new_user.id)
-                #     db.session.add(new_student)
-                #     db.session.commit()
+                new_user = User(email=email, password=hashed_password, username=username, role=role, name=name)
                 db.session.add(new_user)
                 db.session.commit()
+                if role == 'teacher':
+                    new_teacher = Teacher(user_id=new_user.id)
+                    db.session.add(new_teacher)
+                    db.session.commit()
+                elif role == 'student':
+                    new_student = Student(user_id=new_user.id)
+                    db.session.add(new_student)
+                    db.session.commit()
                 flash('You have been registered successfully. Please Login', 'success')
                 return redirect(url_for('login'))
             except Exception as e:
@@ -101,6 +111,56 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
 
+@app.route('/profile')
+@login_required
+def profile():
+    current_user_id = current_user.id
+    user = User.query.filter_by(id=current_user_id).first()
+    user = user.to_json()
+    print(user)
+    if user['role'] == 'teacher':
+        teacher = Teacher.query.filter_by(user_id=current_user_id).first()
+        role = 'teacher'
+        user['bio'] = teacher.bio
+        user['education'] = teacher.education
+        user['experience'] = teacher.experience
+    elif user['role'] == 'student':
+        student = Student.query.filter_by(user_id=current_user_id).first()
+        role = 'student'
+        user['grade'] = student.grade
+        user['bio'] = student.bio
+    return render_template('profile.html', user=user, role=role)
+
+@app.route('/profile/edit')
+@login_required
+def edit_profile():
+    role = 'teacher'
+    user = {
+        'username': 'johndoe',
+        'name': 'John Doe',
+        'email': 'john@doe.com',
+        'role': role,
+        'grade': '10th Grade',
+        'bio': 'I am a student at XYZ High School',
+        'certificates': [
+            {
+                'name': 'Python Programming',
+                'year': '1998',
+                'institution': 'ABC Institute',
+                'description': 'Learned Python Programming from scratch',
+            },
+            {
+                'name': 'Web Development',
+                'year': '1999',
+                'institution': 'DEF Institute',
+                'description': 'Learned Web Development from scratch',
+            },
+        ],
+        'education': 'Bachelors',
+        'experience': '5 years',
+        'specializations': ['Python Programming', 'Web Development'],
+    }
+    return render_template('edit_profile.html', user=user, role=role)
 
 @app.route('/courses')
 @login_required
@@ -190,68 +250,6 @@ def wishlist():
     }
     role = 'student'
     return render_template('wishlist.html', courses=courses, user=user)
-
-@app.route('/profile')
-@login_required
-def profile():
-    role = 'teacher'
-    user = {
-        'username': 'johndoe',
-        'name': 'John Doe',
-        'email': 'john@doe.com',
-        'role': role,
-        'grade': '10th Grade',
-        'bio': 'I am a student at XYZ High School',
-        'certificates': [
-            {
-                'name': 'Python Programming',
-                'year': '1998',
-                'institution': 'ABC Institute',
-                'description': 'Learned Python Programming from scratch',
-            },
-            {
-                'name': 'Web Development',
-                'year': '1999',
-                'institution': 'DEF Institute',
-                'description': 'Learned Web Development from scratch',
-            },
-        ],
-        'education': 'Bachelors',
-        'experience': '5 years',
-        'specializations': ['Python Programming', 'Web Development'],
-    }
-    return render_template('profile.html', user=user, role=role)
-
-@app.route('/profile/edit')
-@login_required
-def edit_profile():
-    role = 'teacher'
-    user = {
-        'username': 'johndoe',
-        'name': 'John Doe',
-        'email': 'john@doe.com',
-        'role': role,
-        'grade': '10th Grade',
-        'bio': 'I am a student at XYZ High School',
-        'certificates': [
-            {
-                'name': 'Python Programming',
-                'year': '1998',
-                'institution': 'ABC Institute',
-                'description': 'Learned Python Programming from scratch',
-            },
-            {
-                'name': 'Web Development',
-                'year': '1999',
-                'institution': 'DEF Institute',
-                'description': 'Learned Web Development from scratch',
-            },
-        ],
-        'education': 'Bachelors',
-        'experience': '5 years',
-        'specializations': ['Python Programming', 'Web Development'],
-    }
-    return render_template('edit_profile.html', user=user, role=role)
 
 if __name__ == '__main__':
     with app.app_context():
