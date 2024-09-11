@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+{% block content %}
+<h1>Edit Profile</h1>
+<form action="">
+    <p>Username: </p>
+    <input type="text" name="username" id="username">
+    <p>Email: </p>
+    <input type="email" name="email" id="email">
+    <p>Name: </p>
+    <input type="text" name="name" id="name">
+    <p>Bio: </p>
+    <textarea name="bio" id="bio"></textarea>
+    {% if role == 'student' %}
+    <p>Grade Level: </p>
+    <input type="text" name="grade_level" id="grade_level">
+    {% endif %}
+    {% if role == 'teacher' %}
+    <p>Certificates: </p>
+    <a href="#"><button class="btn btn-primary">Add Certificate</button></a>
+    {% for certificate in user.certificates %}
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">{{ certificate.name }}</h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.institution }}</h6>
+            <p class="card-text">{{ certificate.description }}</p>
+            <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.year }}</h6>
+        </div>
+        <div class="buttons">
+            <a href="#"><button class="btn btn-danger">Delete</button></a>
+        </div>
+    </div>
+    {% endfor %}
+    <p>Education Level: </p>
+    <input type="text" name="education_level" id="education_level">
+    <p>Experience: </p>
+    <input type="text" name="experience" id="experience"><br>
+    {% endif %}
+    <input type="submit" value="Save" class="btn btn-success">
+</form>
+{% endblock %}

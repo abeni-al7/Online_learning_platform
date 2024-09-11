@@ -8,8 +8,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy()
-db.init_app(app)
+db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 bcrypt = Bcrypt(app)
@@ -19,10 +18,26 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.Text, unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
+    username = db.Column(db.Text, nullable=True)
+
+class Student(db.Model):
+    __tablename__ = 'students'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    grade = db.Column(db.Text)
+    bio = db.Column(db.Text)
+
+class Teacher(db.Model):
+    __tablename__ = 'teachers'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    bio = db.Column(db.Text)
+    education = db.Column(db.Text)
+    experience = db.Column(db.Text)
 
 @login_manager.user_loader
 def load_user(id):
-    return User.query.get(int(id))
+    return User.query.filter_by(id=id).first()
 
 @app.route('/')
 def index():
@@ -47,10 +62,19 @@ def register():
             print('Passwords don\'t match')
         else:
             try:
-                new_user = User(email=email, password=hashed_password)
+                new_user = User(email=email, password=hashed_password, username=username)
+                print(new_user.get_id())
+                # if role == 'teacher':
+                #     new_teacher = Teacher(user_id=new_user.id)
+                #     db.session.add(new_teacher)
+                #     db.session.commit()
+                # elif role == 'student':
+                #     new_student = Student(user_id=new_user.id)
+                #     db.session.add(new_student)
+                #     db.session.commit()
                 db.session.add(new_user)
                 db.session.commit()
-                print('Success')
+                flash('You have been registered successfully. Please Login', 'success')
                 return redirect(url_for('login'))
             except Exception as e:
                 flash('Something went wrong. Please try again.')
