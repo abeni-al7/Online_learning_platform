@@ -3,15 +3,12 @@
 {% block content %}
 <h2>Courses</h2>
 <p>Welcome {{ user.name }}</p>
+{% if role == 'student' %}
 <a href="/courses/browse"><button type="button" class="btn btn-primary">Browse Courses</button></a>
-<a href="/courses/enrolled"><button type="button" class="btn btn-primary">Enrolled Courses</button></a>
-<a href="/courses/wishlist"><button type="button" class="btn btn-success">Wishlist</button></a>
-{% if role == 'teacher' %}
-<a href="#"><button type="button" class="btn btn-primary">Create A New Course</button></a>
 <h4>Your Courses</h4>
-<form class="d-flex" role="search">
-    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-    <button class="btn btn-outline-success" type="submit">Search</button>
+<form class="d-flex" role="search"></form>
+<input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+<button class="btn btn-outline-success" type="submit">Search</button>
 </form>
 <table>
     <tr>
@@ -22,12 +19,35 @@
     <tr>
         <td><a href="#">{{ course.name }}</a></td>
         <td>
-            <a href="#"><button type="button" class="btn btn-primary">Edit</button></a>
-            <a href="#"><button type="button" class="btn btn-danger">Delete</button></a>
+            <a href="#"><button type="button" class="btn btn-primary">View</button></a>
+            <a href="#"><button type="button" class="btn btn-danger">Unenroll</button></a>
         </td>
     </tr>
     {% endfor %}
-</table>
-{% endif %}
+    {% endif %}
+    {% if role == 'teacher' %}
+    <a href="{{url_for('create_course')}}"><button type="button" class="btn btn-primary">Create A New
+            Course</button></a>
+    <h4>Your Courses</h4>
+    <form class="d-flex" role="search">
+        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-success" type="submit">Search</button>
+    </form>
+    <table>
+        <tr>
+            <th>Course Name</th>
+            <th>Actions</th>
+        </tr>
+        {% for course in courses %}
+        <tr>
+            <td><a href="#">{{ course.name }}</a></td>
+            <td>
+                <a href="#"><button type="button" class="btn btn-primary">Edit</button></a>
+                <a href="#"><button type="button" class="btn btn-danger">Delete</button></a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
 
-{% endblock %}
+    {% endblock %}

@@ -37,6 +37,7 @@ class Student(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     grade = db.Column(db.Text)
     bio = db.Column(db.Text)
+    courses = db.relationship('Course', secondary='enrollments', back_populates='students')
 
 class Teacher(db.Model):
     __tablename__ = 'teachers'
@@ -45,6 +46,7 @@ class Teacher(db.Model):
     bio = db.Column(db.Text)
     education = db.Column(db.Text)
     experience = db.Column(db.Text)
+    courses = db.relationship('Course', backref='teacher', lazy=True)
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -52,6 +54,15 @@ class Course(db.Model):
     name = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
+    students = db.relationship('Student', secondary='enrollments', back_populates='courses')
+
+class Enrollment(db.Model):
+    __tablename__ = 'enrollments'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    db.UniqueConstraint('student_id', 'course_id')
 
 @login_manager.user_loader
 def load_user(id):
@@ -186,91 +197,74 @@ def edit_profile():
 @app.route('/courses')
 @login_required
 def courses():
-    courses = [
-        {
-            'name': 'Python Programming',
-            'code': 'PY101',
-            'description': 'Learn Python Programming from scratch'
-        },
-        {
-            'name': 'Web Development',
-            'code': 'WD101',
-            'description': 'Learn Web Development from scratch'
-        },
-        {
-            'name': 'Data Science',
-            'code': 'DS101',
-            'description': 'Learn Data Science from scratch'
-        },
-    ]
-    user = {
-        'name': 'John Doe',
-    }
-    role = 'student'
-    return render_template('courses.html', role=role, courses=courses, user=user)
+    if current_user.role == 'teacher':
+        teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+        created_courses = Course.query.filter_by(teacher_id=teacher.id).all()
+        return render_template('courses.html', role='teacher', courses=created_courses, user=current_user)
+    
+    elif current_user.role == 'student':
+        student = Student.query.filter_by(user_id=current_user.id).first()
+        enrolled_courses = db.session.query(Course).join(Enrollment).filter(Enrollment.student_id == student.id).all()
+        return render_template('courses.html', role='student', courses=enrolled_courses, user=current_user)
+
+    else:
+        flash('Invalid role.', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/courses/create', methods=['GET', 'POST'])
+@login_required
+def create_course():
+    if current_user.role != 'teacher':
+        flash('Only teachers can create courses.', 'danger')
+        return redirect(url_for('courses'))
+    if request.method == 'POST':
+        name = request.form.get('name')
+        code = request.form.get('code')
+        description = request.form.get('description')
+        teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+
+        new_course = Course(name=name, code=code, description=description, teacher_id=teacher.id)
+        db.session.add(new_course)
+        db.session.commit()
+
+        flash('Course created successfully!', 'success')
+        return redirect(url_for('courses'))
+
+    return render_template('create_course.html')
 
 @app.route('/courses/browse')
 @login_required
 def browse_courses():
-    courses = [
-        {
-            'name': 'Python Programming',
-            'code': 'PY101',
-            'description': 'Learn Python Programming from scratch'
-        },
-        {
-            'name': 'Web Development',
-            'code': 'WD101',
-            'description': 'Learn Web Development from scratch'
-        },
-        {
-            'name': 'Data Science',
-            'code': 'DS101',
-            'description': 'Learn Data Science from scratch'
-        },
-    ]
-    user = {
-        'name': 'John Doe',
-    }
-    role = 'student'
-    return render_template('browse_courses.html', courses=courses, user=user)
+    if current_user.role != 'student':
+        flash('Only students can browse courses.', 'danger')
+        return redirect(url_for('courses'))
 
-@app.route('/courses/enrolled')
-@login_required
-def enrolled_courses():
-    courses = [
-        {
-            'name': 'Python Programming',
-            'code': 'PY101',
-            'description': 'Learn Python Programming from scratch'
-        },
-        {
-            'name': 'Web Development',
-            'code': 'WD101',
-            'description': 'Learn Web Development from scratch'
-        },
-    ]
-    user = {
-        'name': 'John Doe',
-    }
-    role = 'student'
-    return render_template('enrolled_courses.html', courses=courses, user=user)
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    enrolled_courses = [enrollment.course_id for enrollment in Enrollment.query.filter_by(student_id=student.id).all()]
+    available_courses = Course.query.filter(~Course.id.in_(enrolled_courses)).all()
 
-@app.route('/courses/wishlist')
+    return render_template('browse_courses.html', courses=available_courses, user=current_user)
+
+@app.route('/courses/enroll/<int:course_id>', methods=['POST'])
 @login_required
-def wishlist():
-    courses = [
-        {
-            'name': 'Data Science',
-            'code': 'DS101',
-            'description': 'Learn Data Science from scratch'
-        },
-    ]
-    user = {
-        'name': 'John Doe',
-    }
-    role = 'student'
-    return render_template('wishlist.html', courses=courses, user=user)
+def enroll_course(course_id):
+    if current_user.role != 'student':
+        flash('Only students can enroll in courses.', 'danger')
+        return redirect(url_for('courses'))
+
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    course = Course.query.get(course_id)
+
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('browse_courses'))
+
+    enrollment = Enrollment(student_id=student.id, course_id=course.id)
+    db.session.add(enrollment)
+    db.session.commit()
+
+    flash(f'You have enrolled in {course.name}!', 'success')
+    return redirect(url_for('courses'))
 
 if __name__ == '__main__':
     with app.app_context():

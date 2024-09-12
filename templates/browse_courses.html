@@ -16,8 +16,9 @@
     <tr>
         <td><a href="#">{{ course.name }}</a></td>
         <td>
-            <a href="#"><button type="button" class="btn btn-primary">Enroll</button></a>
-            <a href="#"><button type="button" class="btn btn-success">Add to Wishlist</button></a>
+            <form action="/courses/enroll/{{course.id}}" method="post">
+                <input class="btn btn-primary" type="submit" value="Enroll">
+            </form>
         </td>
     </tr>
     {% endif %}

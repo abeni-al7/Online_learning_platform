@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Create Courses{% endblock %}
+{% block content %}
+<form action="{{url_for('create_course')}}" method="post">
+    <label for="name">Name</label><br>
+    <input type="text" name="name" id="name"><br>
+    <label for="code">Code</label><br>
+    <input type="text" name="code" id="code"><br>
+    <label for="description">Description</label><br>
+    <textarea name="description" id="description"></textarea><br>
+    <input type="submit" value="Create">
+</form>
+{% endblock %}
