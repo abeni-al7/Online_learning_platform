@@ -46,6 +46,13 @@ class Teacher(db.Model):
     education = db.Column(db.Text)
     experience = db.Column(db.Text)
 
+class Course(db.Model):
+    __tablename__ = 'courses'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text, nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=False)
+
 @login_manager.user_loader
 def load_user(id):
     return User.query.filter_by(id=id).first()
@@ -101,7 +108,7 @@ def login():
             login_user(user)
             return redirect(url_for('courses'))
         else:
-            flash('Login unsuccessful. Please check your username and password.')
+            flash('Login unsuccessful. Please check your email and password.')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -111,13 +118,39 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     current_user_id = current_user.id
     user = User.query.filter_by(id=current_user_id).first()
+    if request.method == 'POST':
+        if request.form.get('_method') == 'DELETE':
+            db.session.delete(user)
+            db.session.commit()
+            flash('Profile deleted successfully', 'success')
+            return redirect(url_for('index'))
+        name = request.form.get('name')
+        user.name = name
+        db.session.commit()
+        if user.role == 'teacher':
+            bio = request.form.get('bio')
+            education = request.form.get('education')
+            experience = request.form.get('experience')
+            teacher = Teacher.query.filter_by(user_id=current_user_id).first()
+            teacher.bio = bio
+            teacher.education = education
+            teacher.experience = experience
+            db.session.commit()
+        elif user.role == 'student':
+            grade = request.form.get('grade_level')
+            bio = request.form.get('bio')
+            student = Student.query.filter_by(user_id=current_user_id).first()
+            student.grade = grade
+            student.bio = bio
+            db.session.commit()
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('profile'))
     user = user.to_json()
-    print(user)
     if user['role'] == 'teacher':
         teacher = Teacher.query.filter_by(user_id=current_user_id).first()
         role = 'teacher'
@@ -134,32 +167,20 @@ def profile():
 @app.route('/profile/edit')
 @login_required
 def edit_profile():
-    role = 'teacher'
-    user = {
-        'username': 'johndoe',
-        'name': 'John Doe',
-        'email': 'john@doe.com',
-        'role': role,
-        'grade': '10th Grade',
-        'bio': 'I am a student at XYZ High School',
-        'certificates': [
-            {
-                'name': 'Python Programming',
-                'year': '1998',
-                'institution': 'ABC Institute',
-                'description': 'Learned Python Programming from scratch',
-            },
-            {
-                'name': 'Web Development',
-                'year': '1999',
-                'institution': 'DEF Institute',
-                'description': 'Learned Web Development from scratch',
-            },
-        ],
-        'education': 'Bachelors',
-        'experience': '5 years',
-        'specializations': ['Python Programming', 'Web Development'],
-    }
+    current_user_id = current_user.id
+    user = User.query.filter_by(id=current_user_id).first()
+    user = user.to_json()
+    if user['role'] == 'teacher':
+        teacher = Teacher.query.filter_by(user_id=current_user_id).first()
+        role = 'teacher'
+        user['bio'] = teacher.bio
+        user['education'] = teacher.education
+        user['experience'] = teacher.experience
+    elif user['role'] == 'student':
+        student = Student.query.filter_by(user_id=current_user_id).first()
+        role = 'student'
+        user['grade'] = student.grade
+        user['bio'] = student.bio
     return render_template('edit_profile.html', user=user, role=role)
 
 @app.route('/courses')
@@ -185,7 +206,7 @@ def courses():
     user = {
         'name': 'John Doe',
     }
-    role = 'teacher'
+    role = 'student'
     return render_template('courses.html', role=role, courses=courses, user=user)
 
 @app.route('/courses/browse')

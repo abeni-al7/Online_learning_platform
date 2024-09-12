@@ -11,25 +11,11 @@
 <p>Grade Level: {{ user.grade }}</p>
 {% endif %}
 {% if role == 'teacher' %}
-<p>Certificates: </p>
-{% for certificate in user.certificates %}
-<div class="card" style="width: 18rem;">
-    <div class="card-body">
-        <h5 class="card-title">{{ certificate.name }}</h5>
-        <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.institution }}</h6>
-        <p class="card-text">{{ certificate.description }}</p>
-        <h6 class="card-subtitle mb-2 text-body-secondary">{{ certificate.year }}</h6>
-    </div>
-</div>
-{% endfor %}
 <p>Education Level: {{ user.education }}</p>
 <p>Experience: {{ user.experience }}</p>
-<p>Specializations: </p>
-<ul>
-    {% for specialization in user.specializations %}
-    <li>{{ specialization }}</li>
-    {% endfor %}
-</ul>
 {% endif %}
-<a href="#"><button class="btn btn-danger">Delete Profile</button></a>
+<form action="/profile" method="post">
+    <input type="hidden" name="_method" value="DELETE">
+    <input type="submit" value="Delete Account" class="btn btn-danger">
+</form>
 {% endblock %}
