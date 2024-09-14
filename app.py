@@ -302,6 +302,72 @@ def course_description(course_id):
 
     return render_template('course_description.html', course=course)
 
+@app.route('/courses/delete/<int:course_id>', methods=['POST'])
+@login_required
+def delete_course(course_id):
+    if current_user.role != 'teacher':
+        flash('Only teachers can delete courses.', 'danger')
+        return redirect(url_for('courses'))
+
+    course = Course.query.get(course_id)
+    
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('courses'))
+
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+
+    if course.teacher_id != teacher.id:
+        flash('You are not authorized to delete this course.', 'danger')
+        return redirect(url_for('courses'))
+
+    try:
+        db.session.delete(course)
+        db.session.commit()
+        flash(f'Course "{course.name}" deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while deleting the course.', 'danger')
+        print(e)
+
+    return redirect(url_for('courses'))
+
+@app.route('/courses/edit/<int:course_id>', methods=['GET', 'POST'])
+@login_required
+def edit_course(course_id):
+    if current_user.role != 'teacher':
+        flash('Only teachers can edit courses.', 'danger')
+        return redirect(url_for('courses'))
+
+    course = Course.query.get(course_id)
+    
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('courses'))
+
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+
+    if course.teacher_id != teacher.id:
+        flash('You are not authorized to edit this course.', 'danger')
+        return redirect(url_for('courses'))
+
+    if request.method == 'POST':
+        course.name = request.form.get('name')
+        course.code = request.form.get('code')
+        course.description = request.form.get('description')
+
+        try:
+            db.session.commit()
+            flash(f'Course "{course.name}" updated successfully.', 'success')
+            return redirect(url_for('courses'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the course.', 'danger')
+            print(e)
+
+    return render_template('edit_course.html', course=course)
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
