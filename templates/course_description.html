@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Description{% endblock %}
+{% block content %}
+<h1>{{course.name}}</h1>
+<p>{{course.code}}</p>
+<p>{{course.description}}</p>
+<form action="/courses/enroll/{{course.id}}" method="post">
+    <input class="btn btn-primary" type="submit" value="Enroll">
+</form>
+{% endblock %}

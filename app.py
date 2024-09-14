@@ -266,6 +266,42 @@ def enroll_course(course_id):
     flash(f'You have enrolled in {course.name}!', 'success')
     return redirect(url_for('courses'))
 
+@app.route('/courses/unenroll/<int:course_id>', methods=['POST'])
+@login_required
+def unenroll_course(course_id):
+    if current_user.role != 'student':
+        flash('Only students can unenroll from courses.', 'danger')
+        return redirect(url_for('courses'))
+
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    course = Course.query.get(course_id)
+
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('courses'))
+
+    enrollment = Enrollment.query.filter_by(student_id=student.id, course_id=course_id).first()
+
+    if not enrollment:
+        flash('You are not enrolled in this course.', 'danger')
+        return redirect(url_for('courses'))
+
+    db.session.delete(enrollment)
+    db.session.commit()
+
+    flash(f'You have successfully unenrolled from {course.name}.', 'success')
+    return redirect(url_for('courses'))
+
+@app.route('/courses/description/<int:course_id>')
+@login_required
+def course_description(course_id):
+    course = Course.query.get(course_id)
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('courses'))
+
+    return render_template('course_description.html', course=course)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

@@ -14,7 +14,7 @@
     {% for course in courses %}
     {% if course not in user.enrolled %}
     <tr>
-        <td><a href="#">{{ course.name }}</a></td>
+        <td><a href="/courses/description/{{course.id}}">{{ course.name }}</a></td>
         <td>
             <form action="/courses/enroll/{{course.id}}" method="post">
                 <input class="btn btn-primary" type="submit" value="Enroll">
