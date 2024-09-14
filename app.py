@@ -3,15 +3,20 @@ from flask import Flask, render_template, request, url_for, redirect, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, UserMixin, current_user, logout_user
 from flask_bcrypt import Bcrypt
+from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOADS_DEFAULT_DEST'] = os.path.join(os.getcwd(), 'uploads')
+os.makedirs(app.config['UPLOADS_DEFAULT_DEST'], exist_ok=True)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 bcrypt = Bcrypt(app)
+uploaded_files = UploadSet('files', ALL)
+configure_uploads(app, uploaded_files)
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -56,6 +61,8 @@ class Course(db.Model):
     description = db.Column(db.Text, nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
     students = db.relationship('Student', secondary='enrollments', back_populates='courses')
+    syllabus_pdf = db.Column(db.Text)
+    video_link = db.Column(db.Text)
 
 class Enrollment(db.Model):
     __tablename__ = 'enrollments'
@@ -222,8 +229,24 @@ def create_course():
         code = request.form.get('code')
         description = request.form.get('description')
         teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+        pdf_files = request.files.getlist('syllabus_pdf[]')
+        uploaded_pdfs = []
+        for pdf in pdf_files:
+            if pdf:
+                pdf_filename = uploaded_files.save(pdf)
+                uploaded_pdfs.append(pdf_filename)
 
-        new_course = Course(name=name, code=code, description=description, teacher_id=teacher.id)
+        video_files = request.files.getlist('video[]')
+        uploaded_videos = []
+        for video in video_files:
+            if video:
+                video_filename = uploaded_files.save(video)
+                uploaded_videos.append(video_filename)
+
+        syllabus_pdf = ','.join(uploaded_pdfs) 
+        video_link = ','.join(uploaded_videos)
+
+        new_course = Course(name=name, code=code, description=description, teacher_id=teacher.id, syllabus_pdf=syllabus_pdf, video_link=video_link)
         db.session.add(new_course)
         db.session.commit()
 
@@ -356,9 +379,26 @@ def edit_course(course_id):
         course.code = request.form.get('code')
         course.description = request.form.get('description')
 
+        pdf_files = request.files.getlist('syllabus_pdf[]')
+        uploaded_pdfs = []
+        for pdf in pdf_files:
+            if pdf:
+                pdf_filename = uploaded_files.save(pdf)
+                uploaded_pdfs.append(pdf_filename)
+
+        video_files = request.files.getlist('video[]')
+        uploaded_videos = []
+        for video in video_files:
+            if video:
+                video_filename = uploaded_files.save(video)
+                uploaded_videos.append(video_filename)
+
+        course.syllabus_pdf = ','.join(uploaded_pdfs) 
+        course.video_link = ','.join(uploaded_videos)
+
         try:
             db.session.commit()
-            flash(f'Course "{course.name}" updated successfully.', 'success')
+            flash(f'Course "{course.name}" updated successfully, with files uploaded.', 'success')
             return redirect(url_for('courses'))
         except Exception as e:
             db.session.rollback()
@@ -366,7 +406,6 @@ def edit_course(course_id):
             print(e)
 
     return render_template('edit_course.html', course=course)
-
 
 if __name__ == '__main__':
     with app.app_context():
