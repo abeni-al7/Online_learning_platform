@@ -19,7 +19,7 @@
     <tr>
         <td><a href="#">{{ course.name }}</a></td>
         <td>
-            <form action="/courses/description/{{course.id}}">
+            <form action="/courses/view/{{course.id}}">
                 <input class="btn btn-primary" type="submit" value="View">
             </form>
             <form action="/courses/unenroll/{{course.id}}" method="post">

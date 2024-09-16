@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}View Course{% endblock %}
+{% block content %}
+<h1>{{ course.name }}</h1>
+<p>{{ course.description }}</p>
+
+<h3>Videos:</h3>
+{% for video in course.video_link.split(',') %}
+<a href="{{ url_for('download_file', filename=video) }}">Download {{video}}</a><br>
+{% endfor %}
+
+<h3>Syllabus:</h3>
+{% for pdf in course.syllabus_pdf.split(',') %}
+<a href="{{ url_for('download_file', filename=pdf) }}">Download {{pdf}}</a><br>
+{% endfor %}
+
+{% endblock %}

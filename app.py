@@ -1,10 +1,10 @@
 import os
-from flask import Flask, render_template, request, url_for, redirect, flash
+from flask import Flask, render_template, request, url_for, redirect, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, UserMixin, current_user, logout_user
 from flask_bcrypt import Bcrypt
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
-
+# Works
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
@@ -392,13 +392,16 @@ def edit_course(course_id):
             if video:
                 video_filename = uploaded_files.save(video)
                 uploaded_videos.append(video_filename)
-
-        course.syllabus_pdf = ','.join(uploaded_pdfs) 
-        course.video_link = ','.join(uploaded_videos)
+        if course.syllabus_pdf:
+            course.syllabus_pdf += ',' + ','.join(uploaded_pdfs) 
+            course.video_link += ',' + ','.join(uploaded_videos)
+        else:
+            course.syllabus_pdf = ','.join(uploaded_pdfs)
+            course.video_link = ','.join(uploaded_videos)
 
         try:
             db.session.commit()
-            flash(f'Course "{course.name}" updated successfully, with files uploaded.', 'success')
+            flash(f'Course "{course.name}" updated successfully.', 'success')
             return redirect(url_for('courses'))
         except Exception as e:
             db.session.rollback()
@@ -406,6 +409,25 @@ def edit_course(course_id):
             print(e)
 
     return render_template('edit_course.html', course=course)
+
+@app.route('/courses/view/<int:course_id>')
+@login_required
+def view_course(course_id):
+    course = Course.query.filter_by(id=course_id).first()
+    if not course:
+        flash('Course not found.', 'danger')
+        return redirect(url_for('courses'))
+
+    return render_template('view_course.html', course=course)
+
+@app.route('/download/<path:filename>')
+@login_required
+def download_file(filename):
+    try:
+        return send_from_directory(app.config['UPLOADS_DEFAULT_DEST'], f'files/{filename}', as_attachment=True)
+    except Exception as e:
+        flash('File not found.', 'danger')
+        return redirect(url_for('courses'))
 
 if __name__ == '__main__':
     with app.app_context():
