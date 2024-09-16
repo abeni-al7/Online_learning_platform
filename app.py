@@ -43,6 +43,7 @@ class Student(db.Model):
     grade = db.Column(db.Text)
     bio = db.Column(db.Text)
     courses = db.relationship('Course', secondary='enrollments', back_populates='students')
+    enrollments = db.relationship('Enrollment', cascade='all, delete', backref='student')
 
 class Teacher(db.Model):
     __tablename__ = 'teachers'
@@ -51,7 +52,7 @@ class Teacher(db.Model):
     bio = db.Column(db.Text)
     education = db.Column(db.Text)
     experience = db.Column(db.Text)
-    courses = db.relationship('Course', backref='teacher', lazy=True)
+    courses = db.relationship('Course', backref='teacher', lazy=True, cascade="all, delete-orphan")
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -143,6 +144,12 @@ def profile():
     user = User.query.filter_by(id=current_user_id).first()
     if request.method == 'POST':
         if request.form.get('_method') == 'DELETE':
+            if user.role == 'student':
+                student = Student.query.filter_by(user_id=user.id).first()
+                db.session.delete(student)
+            else:
+                teacher = Teacher.query.filter_by(user_id=user.id).first()
+                db.session.delete(teacher)
             db.session.delete(user)
             db.session.commit()
             flash('Profile deleted successfully', 'success')
