@@ -1,86 +1,21 @@
-import os
-from flask import Flask, render_template, request, url_for, redirect, flash, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, login_required, UserMixin, current_user, logout_user
-from flask_bcrypt import Bcrypt
-from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
-# Works
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOADS_DEFAULT_DEST'] = os.path.join(os.getcwd(), 'uploads')
-os.makedirs(app.config['UPLOADS_DEFAULT_DEST'], exist_ok=True)
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-bcrypt = Bcrypt(app)
-uploaded_files = UploadSet('files', ALL)
-configure_uploads(app, uploaded_files)
+from flask import Blueprint, render_template, request, url_for, redirect, flash, send_from_directory
+from flask import current_app as app
+from flask_login import login_user, login_required, current_user, logout_user
+from . import db, login_manager, bcrypt, uploaded_files
+from .models import User, Student, Teacher, Course, Enrollment
 
-class User(db.Model, UserMixin):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.Text, unique=True, nullable=False)
-    password = db.Column(db.Text, nullable=False)
-    username = db.Column(db.Text, unique=True, nullable=True)
-    role = db.Column(db.Text, nullable=False)
-    name = db.Column(db.Text, nullable=True)
-
-    def to_json(self):
-        return {
-            'id': self.id,
-            'email': self.email,
-            'username': self.username,
-            'role': self.role,
-            'name': self.name,
-        }
-
-class Student(db.Model):
-    __tablename__ = 'students'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    grade = db.Column(db.Text)
-    bio = db.Column(db.Text)
-    courses = db.relationship('Course', secondary='enrollments', back_populates='students')
-    enrollments = db.relationship('Enrollment', cascade='all, delete', backref='student')
-
-class Teacher(db.Model):
-    __tablename__ = 'teachers'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    bio = db.Column(db.Text)
-    education = db.Column(db.Text)
-    experience = db.Column(db.Text)
-    courses = db.relationship('Course', backref='teacher', lazy=True, cascade="all, delete-orphan")
-
-class Course(db.Model):
-    __tablename__ = 'courses'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text, nullable=False)
-    code = db.Column(db.Text, nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
-    students = db.relationship('Student', secondary='enrollments', back_populates='courses')
-    syllabus_pdf = db.Column(db.Text)
-    video_link = db.Column(db.Text)
-
-class Enrollment(db.Model):
-    __tablename__ = 'enrollments'
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    db.UniqueConstraint('student_id', 'course_id')
+# Define the blueprint
+main = Blueprint('main', __name__)
 
 @login_manager.user_loader
 def load_user(id):
-    return User.query.filter_by(id=id).first()
+    return User.query.get(int(id))
 
-@app.route('/')
+@main.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/register', methods=['GET', 'POST'])
+@main.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -93,7 +28,7 @@ def register():
         user = User.query.filter_by(email=email).first()
         if user:
             flash('You are already registered. Please Login', 'fail')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
         if password != confirm:
             flash('Passwords don\'t match')
             print('Passwords don\'t match')
@@ -111,13 +46,13 @@ def register():
                     db.session.add(new_student)
                     db.session.commit()
                 flash('You have been registered successfully. Please Login', 'success')
-                return redirect(url_for('login'))
+                return redirect(url_for('main.login'))
             except Exception as e:
                 flash('Something went wrong. Please try again.')
                 print(e)
     return render_template('register.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@main.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
@@ -125,19 +60,19 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
-            return redirect(url_for('courses'))
+            return redirect(url_for('main.courses'))
         else:
             flash('Login unsuccessful. Please check your email and password.')
     return render_template('login.html')
 
-@app.route('/logout')
+@main.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
-@app.route('/profile', methods=['GET', 'POST'])
+@main.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     current_user_id = current_user.id
@@ -153,7 +88,7 @@ def profile():
             db.session.delete(user)
             db.session.commit()
             flash('Profile deleted successfully', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
         name = request.form.get('name')
         user.name = name
         db.session.commit()
@@ -174,7 +109,7 @@ def profile():
             student.bio = bio
             db.session.commit()
         flash('Profile updated successfully', 'success')
-        return redirect(url_for('profile'))
+        return redirect(url_for('main.profile'))
     user = user.to_json()
     if user['role'] == 'teacher':
         teacher = Teacher.query.filter_by(user_id=current_user_id).first()
@@ -189,7 +124,7 @@ def profile():
         user['bio'] = student.bio
     return render_template('profile.html', user=user, role=role)
 
-@app.route('/profile/edit')
+@main.route('/profile/edit')
 @login_required
 def edit_profile():
     current_user_id = current_user.id
@@ -208,7 +143,7 @@ def edit_profile():
         user['bio'] = student.bio
     return render_template('edit_profile.html', user=user, role=role)
 
-@app.route('/courses')
+@main.route('/courses')
 @login_required
 def courses():
     if current_user.role == 'teacher':
@@ -223,14 +158,14 @@ def courses():
 
     else:
         flash('Invalid role.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
-@app.route('/courses/create', methods=['GET', 'POST'])
+@main.route('/courses/create', methods=['GET', 'POST'])
 @login_required
 def create_course():
     if current_user.role != 'teacher':
         flash('Only teachers can create courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
     if request.method == 'POST':
         name = request.form.get('name')
         code = request.form.get('code')
@@ -258,16 +193,16 @@ def create_course():
         db.session.commit()
 
         flash('Course created successfully!', 'success')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     return render_template('create_course.html')
 
-@app.route('/courses/browse')
+@main.route('/courses/browse')
 @login_required
 def browse_courses():
     if current_user.role != 'student':
         flash('Only students can browse courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     student = Student.query.filter_by(user_id=current_user.id).first()
     enrolled_courses = [enrollment.course_id for enrollment in Enrollment.query.filter_by(student_id=student.id).all()]
@@ -275,81 +210,81 @@ def browse_courses():
 
     return render_template('browse_courses.html', courses=available_courses, user=current_user)
 
-@app.route('/courses/enroll/<int:course_id>', methods=['POST'])
+@main.route('/courses/enroll/<int:course_id>', methods=['POST'])
 @login_required
 def enroll_course(course_id):
     if current_user.role != 'student':
         flash('Only students can enroll in courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     student = Student.query.filter_by(user_id=current_user.id).first()
     course = Course.query.get(course_id)
 
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('browse_courses'))
+        return redirect(url_for('main.browse_courses'))
 
     enrollment = Enrollment(student_id=student.id, course_id=course.id)
     db.session.add(enrollment)
     db.session.commit()
 
     flash(f'You have enrolled in {course.name}!', 'success')
-    return redirect(url_for('courses'))
+    return redirect(url_for('main.courses'))
 
-@app.route('/courses/unenroll/<int:course_id>', methods=['POST'])
+@main.route('/courses/unenroll/<int:course_id>', methods=['POST'])
 @login_required
 def unenroll_course(course_id):
     if current_user.role != 'student':
         flash('Only students can unenroll from courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     student = Student.query.filter_by(user_id=current_user.id).first()
     course = Course.query.get(course_id)
 
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     enrollment = Enrollment.query.filter_by(student_id=student.id, course_id=course_id).first()
 
     if not enrollment:
         flash('You are not enrolled in this course.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     db.session.delete(enrollment)
     db.session.commit()
 
     flash(f'You have successfully unenrolled from {course.name}.', 'success')
-    return redirect(url_for('courses'))
+    return redirect(url_for('main.courses'))
 
-@app.route('/courses/description/<int:course_id>')
+@main.route('/courses/description/<int:course_id>')
 @login_required
 def course_description(course_id):
     course = Course.query.get(course_id)
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     return render_template('course_description.html', course=course)
 
-@app.route('/courses/delete/<int:course_id>', methods=['POST'])
+@main.route('/courses/delete/<int:course_id>', methods=['POST'])
 @login_required
 def delete_course(course_id):
     if current_user.role != 'teacher':
         flash('Only teachers can delete courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     course = Course.query.get(course_id)
     
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
 
     if course.teacher_id != teacher.id:
         flash('You are not authorized to delete this course.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     try:
         db.session.delete(course)
@@ -360,26 +295,26 @@ def delete_course(course_id):
         flash('An error occurred while deleting the course.', 'danger')
         print(e)
 
-    return redirect(url_for('courses'))
+    return redirect(url_for('main.courses'))
 
-@app.route('/courses/edit/<int:course_id>', methods=['GET', 'POST'])
+@main.route('/courses/edit/<int:course_id>', methods=['GET', 'POST'])
 @login_required
 def edit_course(course_id):
     if current_user.role != 'teacher':
         flash('Only teachers can edit courses.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     course = Course.query.get(course_id)
     
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
 
     if course.teacher_id != teacher.id:
         flash('You are not authorized to edit this course.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     if request.method == 'POST':
         course.name = request.form.get('name')
@@ -409,7 +344,7 @@ def edit_course(course_id):
         try:
             db.session.commit()
             flash(f'Course "{course.name}" updated successfully.', 'success')
-            return redirect(url_for('courses'))
+            return redirect(url_for('main.courses'))
         except Exception as e:
             db.session.rollback()
             flash('An error occurred while updating the course.', 'danger')
@@ -417,26 +352,21 @@ def edit_course(course_id):
 
     return render_template('edit_course.html', course=course)
 
-@app.route('/courses/view/<int:course_id>')
+@main.route('/courses/view/<int:course_id>')
 @login_required
 def view_course(course_id):
     course = Course.query.filter_by(id=course_id).first()
     if not course:
         flash('Course not found.', 'danger')
-        return redirect(url_for('courses'))
+        return redirect(url_for('main.courses'))
 
     return render_template('view_course.html', course=course)
 
-@app.route('/download/<path:filename>')
+@main.route('/download/<path:filename>')
 @login_required
 def download_file(filename):
     try:
         return send_from_directory(app.config['UPLOADS_DEFAULT_DEST'], f'files/{filename}', as_attachment=True)
     except Exception as e:
         flash('File not found.', 'danger')
-        return redirect(url_for('courses'))
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+        return redirect(url_for('main.courses'))

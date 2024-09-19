@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Create Courses{% endblock %}
 {% block content %}
-<form action="{{url_for('create_course')}}" method="post" enctype="multipart/form-data">
+<form action="{{url_for('main.create_course')}}" method="post" enctype="multipart/form-data">
     <label for="name">Name</label><br>
     <input type="text" name="name" id="name"><br>
     <label for="code">Code</label><br>
